@@ -3,7 +3,7 @@ export const GameTypes = {
    HARDLE: "hardle",
    YELLODLE: "yellodle",
    GAMBLE: "gamble",
-   MANGLE: "mangle",
+   ODDSLE: "oddsle",
    DUODLE: "duodle",
    FOURLE: "fourle",
 };
@@ -37,9 +37,9 @@ export const GameTypeConfig = {
       wordLength: 5,
       dayOfWeek: 4, // Thursday
    },
-   [GameTypes.MANGLE]: {
-      name: "Mangle",
-      description: "Green and yellow appear the same!",
+   [GameTypes.ODDSLE]: {
+      name: "Oddsle",
+      description: "Two random guesses already filled in!",
       maxGuesses: 7,
       wordLength: 5,
       dayOfWeek: 5, // Friday

@@ -20,6 +20,7 @@ export class StateManager {
 			duodleWord1Found: this.game.duodleWord1Found || false,
 			duodleWord2Found: this.game.duodleWord2Found || false,
 			targetWord2: this.game.targetWord2,
+			oddslePrefilledWords: this.game.oddslePrefilledWords || [],
 		};
 		this.setCookie("tardleGame", JSON.stringify(gameData), 1);
 	}
@@ -59,6 +60,9 @@ export class StateManager {
 				gameData.gambleNextHiddenIndex !== null
 			) {
 				this.game.gambleNextHiddenIndex = gameData.gambleNextHiddenIndex;
+			}
+			if (gameData.oddslePrefilledWords) {
+				this.game.oddslePrefilledWords = gameData.oddslePrefilledWords;
 			}
 			if (gameData.duodleWord1Found !== undefined) {
 				this.game.duodleWord1Found = gameData.duodleWord1Found;

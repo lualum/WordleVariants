@@ -32,6 +32,7 @@ export class TARDLEGame {
       this.gambleNextHiddenIndex = null; // Track next hidden index for Gamble
       this.fakeLetter = ""; // For Fakele
       this.fakePosition = -1; // For Fakele
+      this.oddslePrefilledWords = []; // For Oddsle mode
 
       // Module Initialization
       this.wordManager = new WordManager();
@@ -90,6 +91,43 @@ export class TARDLEGame {
          this.fakeLetter = letters[Math.floor((hash * 7) % 26)];
       }
 
+      if (this.gameType === GameTypes.ODDSLE) {
+         // Generate two deterministic prefilled words that are NOT the target
+         const hash = this.wordManager.hashDate(new Date());
+
+         // First prefilled word
+         let index1 = hash % this.wordManager.answerList.length;
+         this.oddslePrefilledWords[0] =
+            this.wordManager.answerList[index1].toUpperCase();
+
+         // Ensure first word is not the target
+         let offset1 = 1;
+         while (this.oddslePrefilledWords[0] === this.targetWord) {
+            index1 = (hash + offset1) % this.wordManager.answerList.length;
+            this.oddslePrefilledWords[0] =
+               this.wordManager.answerList[index1].toUpperCase();
+            offset1++;
+         }
+
+         // Second prefilled word (use different seed)
+         let index2 = (hash * 7919) % this.wordManager.answerList.length;
+         this.oddslePrefilledWords[1] =
+            this.wordManager.answerList[index2].toUpperCase();
+
+         // Ensure second word is not the target and not same as first word
+         let offset2 = 1;
+         while (
+            this.oddslePrefilledWords[1] === this.targetWord ||
+            this.oddslePrefilledWords[1] === this.oddslePrefilledWords[0]
+         ) {
+            index2 =
+               (hash * 7919 + offset2) % this.wordManager.answerList.length;
+            this.oddslePrefilledWords[1] =
+               this.wordManager.answerList[index2].toUpperCase();
+            offset2++;
+         }
+      }
+
       // Load saved state first
       const hasLoadedState = this.stateManager.loadGameState();
 
@@ -102,10 +140,15 @@ export class TARDLEGame {
       if (hasLoadedState) {
          this.uiManager.restoreVisualState();
       } else {
-         this.addNewGuess();
-         // Apply gamble preview after adding the first guess
-         if (this.gameType === GameTypes.GAMBLE) {
-            this.uiManager.applyGamblePreview();
+         // Add prefilled guesses for Oddsle
+         if (this.gameType === GameTypes.ODDSLE) {
+            this.addPrefilledGuesses();
+         } else {
+            this.addNewGuess();
+            // Apply gamble preview after adding the first guess
+            if (this.gameType === GameTypes.GAMBLE) {
+               this.uiManager.applyGamblePreview();
+            }
          }
       }
    }
@@ -119,6 +162,46 @@ export class TARDLEGame {
          this.currentPosition = 0;
          this.uiManager.bindGuessToRow(this.currentGuess, this.guesses.length);
       }
+   }
+
+   addPrefilledGuesses() {
+      // Add first prefilled guess
+      this.addNewGuess();
+      const word1 = this.oddslePrefilledWords[0];
+      for (let i = 0; i < word1.length; i++) {
+         this.addLetter(word1[i]);
+      }
+      this.currentGuess.evaluateAgainst(this.targetWord);
+      this.currentGuess.isSubmitted = true;
+
+      // Update visual state to show colors
+      this.currentGuess.letters.forEach((letter) => {
+         letter.updateElement();
+      });
+
+      this.guesses.push(this.currentGuess);
+      this.uiManager.updateKeyboardFromGuess(this.currentGuess);
+
+      // Add second prefilled guess
+      this.addNewGuess();
+      const word2 = this.oddslePrefilledWords[1];
+      for (let i = 0; i < word2.length; i++) {
+         this.addLetter(word2[i]);
+      }
+      this.currentGuess.evaluateAgainst(this.targetWord);
+      this.currentGuess.isSubmitted = true;
+
+      // Update visual state to show colors
+      this.currentGuess.letters.forEach((letter) => {
+         letter.updateElement();
+      });
+
+      this.guesses.push(this.currentGuess);
+      this.uiManager.updateKeyboardFromGuess(this.currentGuess);
+
+      // Add new empty guess for player
+      this.addNewGuess();
+      this.stateManager.saveGameState();
    }
 
    addLetter(letter) {
@@ -159,8 +242,8 @@ export class TARDLEGame {
          this.evaluateFakeleGuess();
       } else if (this.gameType === GameTypes.GAMBLE) {
          this.evaluateGambleGuess();
-      } else if (this.gameType === GameTypes.MANGLE) {
-         this.evaluateMangleGuess();
+      } else if (this.gameType === GameTypes.ODDSLE) {
+         this.currentGuess.evaluateAgainst(this.targetWord);
       } else if (this.gameType === GameTypes.DUODLE) {
          this.evaluateDuodleGuess();
       } else {
@@ -308,17 +391,6 @@ export class TARDLEGame {
       this.currentGuess.isSubmitted = true;
    }
 
-   evaluateMangleGuess() {
-      this.currentGuess.evaluateAgainst(this.targetWord);
-
-      // Convert all correct and present to "mangle" state
-      this.currentGuess.letters.forEach((letter) => {
-         if (letter.state === "correct" || letter.state === "present") {
-            letter.state = "mangle";
-         }
-      });
-   }
-
    evaluateDuodleGuess() {
       const word = this.currentGuess.getWord();
 
@@ -443,36 +515,37 @@ export class TARDLEGame {
    }
 
    resetGame() {
-      console.log("Resetting game...");
-      this.stateManager.clearSavedState();
-
-      this.guesses = [];
-      this.currentGuess = null;
-      this.currentPosition = 0;
-      this.gameState = "playing";
-      this.revealedGreens = new Set();
-      this.revealedYellows = new Set();
-      this.gambleHiddenIndices = [];
-      this.gambleNextHiddenIndex = null;
-      this.duodleWord1Found = false;
-      this.duodleWord2Found = false;
-
-      // Regenerate gamble next hidden index
-      if (this.gameType === GameTypes.GAMBLE) {
+      // Regenerate oddsle prefilled words
+      if (this.gameType === GameTypes.ODDSLE) {
          const hash = this.wordManager.hashDate(new Date());
-         this.gambleNextHiddenIndex = hash % this.wordLength;
+
+         let index1 = hash % this.wordManager.answerList.length;
+         this.oddslePrefilledWords[0] =
+            this.wordManager.answerList[index1].toUpperCase();
+
+         let offset1 = 1;
+         while (this.oddslePrefilledWords[0] === this.targetWord) {
+            index1 = (hash + offset1) % this.wordManager.answerList.length;
+            this.oddslePrefilledWords[0] =
+               this.wordManager.answerList[index1].toUpperCase();
+            offset1++;
+         }
+
+         let index2 = (hash * 7919) % this.wordManager.answerList.length;
+         this.oddslePrefilledWords[1] =
+            this.wordManager.answerList[index2].toUpperCase();
+
+         let offset2 = 1;
+         while (
+            this.oddslePrefilledWords[1] === this.targetWord ||
+            this.oddslePrefilledWords[1] === this.oddslePrefilledWords[0]
+         ) {
+            index2 =
+               (hash * 7919 + offset2) % this.wordManager.answerList.length;
+            this.oddslePrefilledWords[1] =
+               this.wordManager.answerList[index2].toUpperCase();
+            offset2++;
+         }
       }
-
-      this.uiManager.clearBoard();
-      this.uiManager.clearKeyboard();
-      this.uiManager.hideMessage();
-
-      this.addNewGuess();
-
-      if (this.gameType === GameTypes.GAMBLE) {
-         this.uiManager.applyGamblePreview();
-      }
-
-      console.log("Game reset complete. New target word:", this.targetWord);
    }
 }

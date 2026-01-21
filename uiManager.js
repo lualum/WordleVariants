@@ -293,7 +293,7 @@ export class UIManager {
             if (key && !key.classList.contains("correct")) {
                if (
                   state === "correct" ||
-                  state === "mangle" ||
+                  state === "oddsle" ||
                   (state === "present" && !key.classList.contains("present"))
                ) {
                   key.className = "key";
@@ -486,8 +486,6 @@ export class UIManager {
                   shareText += "🟩";
                } else if (letter.state === "present") {
                   shareText += "🟨";
-               } else if (letter.state === "mangle") {
-                  shareText += "🟧";
                } else if (letter.state === "hidden") {
                   shareText += "⬜";
                } else if (letter.state === "empty") {
@@ -506,8 +504,6 @@ export class UIManager {
                   shareText += "🟩";
                } else if (state === "present") {
                   shareText += "🟨";
-               } else if (state === "mangle") {
-                  shareText += "🟧";
                } else if (state === "hidden") {
                   shareText += "⬜";
                } else if (state === "empty") {
@@ -527,7 +523,7 @@ export class UIManager {
                   shareText += "🟩";
                } else if (letter.state === "present") {
                   shareText += "🟨";
-               } else if (letter.state === "mangle") {
+               } else if (letter.state === "oddsle") {
                   shareText += "🟧";
                } else if (letter.state === "hidden") {
                   shareText += "⬜";
@@ -577,7 +573,7 @@ export class UIManager {
             "absent",
             "present",
             "correct",
-            "mangle",
+            "oddsle",
             "duodle-split",
          );
          key.removeAttribute("data-state1");

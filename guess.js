@@ -1,7 +1,7 @@
 export class Letter {
    constructor(character = "", state = "empty") {
       this.character = character.toUpperCase();
-      this.state = state; // 'empty', 'filled', 'correct', 'present', 'absent', 'hidden', 'mangle'
+      this.state = state; // 'empty', 'filled', 'correct', 'present', 'absent', 'hidden', 'oddsle'
       this.state2 = null; // For Duodle second word
       this.element = null;
       this.element2 = null; // For Duodle second board
