@@ -2,7 +2,10 @@ export class Letter {
    constructor(character = "", state = "empty") {
       this.character = character.toUpperCase();
       this.state = state; // 'empty', 'filled', 'correct', 'present', 'absent', 'hidden', 'mangle'
+      this.state2 = null; // For Duodle second word
       this.element = null;
+      this.element2 = null; // For Duodle second board
+      this.skipElement2Update = false; // Flag to skip updating element2
    }
 
    setCharacter(character) {
@@ -16,33 +19,74 @@ export class Letter {
    }
 
    updateElement() {
-      if (!this.element) return;
+      // Update first element only if it exists
+      if (this.element) {
+         // Save gamble-preview class if it exists
+         const hadGamblePreview =
+            this.element.classList.contains("gamble-preview");
 
-      this.element.textContent = this.character;
-      this.element.className = "tile";
+         this.element.textContent = this.character;
+         this.element.className = "tile";
 
-      if (this.state === "filled" || this.state === "empty") {
-         if (this.character) {
-            this.element.classList.add("filled");
+         if (this.state === "filled" || this.state === "empty") {
+            if (this.character) {
+               this.element.classList.add("filled");
+            }
+         } else {
+            this.element.classList.add("filled", this.state);
          }
-      } else {
-         this.element.classList.add("filled", this.state);
+
+         // Restore gamble-preview class
+         if (hadGamblePreview) {
+            this.element.classList.add("gamble-preview");
+         }
+      }
+
+      // Update second element for Duodle only if not skipped
+      if (this.element2 && !this.skipElement2Update) {
+         this.element2.textContent = this.character;
+         this.element2.className = "tile";
+
+         if (
+            this.state2 === "filled" ||
+            this.state2 === "empty" ||
+            !this.state2
+         ) {
+            if (this.character) {
+               this.element2.classList.add("filled");
+            }
+         } else {
+            this.element2.classList.add("filled", this.state2);
+         }
       }
    }
 
    animateFlip() {
-      if (!this.element) return;
+      // Animate first element only if it exists
+      if (this.element) {
+         this.element.classList.add("flip");
 
-      this.element.classList.add("flip");
+         setTimeout(() => {
+            this.element.classList.add(this.state);
+         }, 300);
+      }
 
-      setTimeout(() => {
-         this.element.classList.add(this.state);
-      }, 300);
+      // Animate second element for Duodle only if not skipped
+      if (this.element2 && !this.skipElement2Update) {
+         this.element2.classList.add("flip");
+
+         setTimeout(() => {
+            if (this.state2) {
+               this.element2.classList.add(this.state2);
+            }
+         }, 300);
+      }
    }
 
    clear() {
       this.character = "";
       this.state = "empty";
+      this.state2 = null;
       this.updateElement();
    }
 
@@ -50,11 +94,14 @@ export class Letter {
       return {
          character: this.character,
          state: this.state,
+         state2: this.state2,
       };
    }
 
    static fromJSON(data) {
-      return new Letter(data.character, data.state);
+      const letter = new Letter(data.character, data.state);
+      letter.state2 = data.state2 || null;
+      return letter;
    }
 }
 
@@ -136,6 +183,8 @@ export class Guess {
 
    getLetterStates() {
       const states = {};
+      const states2 = {};
+
       this.letters.forEach((letter) => {
          if (
             letter.character &&
@@ -152,8 +201,27 @@ export class Guess {
                states[letter.character] = letter.state;
             }
          }
+
+         // Handle state2 for Duodle
+         if (
+            letter.character &&
+            letter.state2 &&
+            letter.state2 !== "empty" &&
+            letter.state2 !== "filled" &&
+            letter.state2 !== "hidden"
+         ) {
+            if (
+               !states2[letter.character] ||
+               letter.state2 === "correct" ||
+               (letter.state2 === "present" &&
+                  states2[letter.character] === "absent")
+            ) {
+               states2[letter.character] = letter.state2;
+            }
+         }
       });
-      return states;
+
+      return { states, states2 };
    }
 
    toJSON() {
@@ -168,7 +236,7 @@ export class Guess {
    static fromJSON(data) {
       const guess = new Guess(data.wordLength || 5);
       guess.letters = data.letters.map((letterData) =>
-         Letter.fromJSON(letterData)
+         Letter.fromJSON(letterData),
       );
       guess.isComplete = data.isComplete;
       guess.isSubmitted = data.isSubmitted;

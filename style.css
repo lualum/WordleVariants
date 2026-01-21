@@ -12,6 +12,13 @@
    font-style: normal;
 }
 
+@font-face {
+   font-family: "Memphis";
+   src: url("memphis5.ttf") format("truetype");
+   font-weight: 400;
+   font-style: normal;
+}
+
 * {
    margin: 0;
    padding: 0;
@@ -29,48 +36,69 @@ body {
    min-height: 100vh;
 }
 
+#game-container {
+   opacity: 0;
+   transition: opacity 0.3s ease-in;
+}
+
+#game-container.loaded {
+   opacity: 1;
+}
+
 .title {
    font-family: "Karnak", Arial, sans-serif;
    font-weight: 700;
    font-size: 8vmin;
    letter-spacing: 0.2vmin;
    text-align: center;
-   margin-bottom: 2vmin;
 }
 
 .game-description {
+   font-family: "Memphis", Arial, sans-serif;
+   font-weight: 400;
    font-size: 2.5vmin;
    color: #b0b0b0;
    text-align: center;
-   margin-bottom: 4vmin;
+   margin-bottom: 3vmin;
 }
 
 .main-content {
-   display: flex;
    width: fit-content;
    align-items: center;
    justify-content: center;
 }
 
-.game-section {
+#board {
    display: flex;
    flex-direction: column;
    align-items: center;
-   gap: 2vmin;
-}
-
-.board {
-   display: grid;
-   grid-template-rows: repeat(auto-fill, 1fr);
-   gap: 1vmin;
+   gap: 0.7vmin;
 }
 
 .row {
    display: flex;
-
    flex-direction: row;
-   grid-template-columns: repeat(auto-fill, 1fr);
-   gap: 1vmin;
+   gap: 0.7vmin;
+}
+
+#board1.completed,
+#board2.completed {
+   opacity: 0.4;
+   pointer-events: none;
+   position: relative;
+}
+
+#board1.completed::after,
+#board2.completed::after {
+   position: absolute;
+   top: 50%;
+   left: 50%;
+   transform: translate(-50%, -50%);
+   font-size: 15vmin;
+   color: #538d4e;
+   opacity: 0.3;
+   pointer-events: none;
+   z-index: 10;
 }
 
 .tile {
@@ -116,26 +144,20 @@ body {
    border-color: #ff8c00;
 }
 
-.tile.flip {
-   animation: flip 0.6s linear forwards;
+.tile.gamble-preview {
+   border: 0.3vmin dashed #ffffff;
+   animation: pulse 1s infinite;
 }
 
-@keyframes flip {
-   0% {
-      transform: rotateX(0deg);
-   }
-   50% {
-      transform: rotateX(90deg);
-   }
-   100% {
-      transform: rotateX(0deg);
-   }
+.tile.flip {
+   animation: flip 0.5s linear forwards;
 }
 
 .keyboard {
    display: flex;
    flex-direction: column;
    gap: 0.8vmin;
+   margin-top: 3vmin;
 }
 
 .keyboard-row {
@@ -153,12 +175,68 @@ body {
    color: #ffffff;
    font-size: 2.4vmin;
    font-weight: bold;
+   font-family: "Franklin", Arial, sans-serif;
    cursor: pointer;
    display: flex;
    align-items: center;
    justify-content: center;
    transition: background-color 0.2s ease;
-   font-family: "Franklin", Arial, sans-serif;
+}
+
+.key.duodle-split {
+   background: linear-gradient(
+      to top right,
+      var(--color1) 0%,
+      var(--color1) 49%,
+      var(--color2) 51%,
+      var(--color2) 100%
+   );
+   position: relative;
+}
+
+.key.duodle-split[data-state1="correct"][data-state2="correct"] {
+   --color1: #538d4e;
+   --color2: #538d4e;
+}
+
+.key.duodle-split[data-state1="correct"][data-state2="present"] {
+   --color1: #538d4e;
+   --color2: #b59f3b;
+}
+
+.key.duodle-split[data-state1="correct"][data-state2="absent"] {
+   --color1: #538d4e;
+   --color2: #3a3a3c;
+}
+
+.key.duodle-split[data-state1="present"][data-state2="correct"] {
+   --color1: #b59f3b;
+   --color2: #538d4e;
+}
+
+.key.duodle-split[data-state1="present"][data-state2="present"] {
+   --color1: #b59f3b;
+   --color2: #b59f3b;
+}
+
+.key.duodle-split[data-state1="present"][data-state2="absent"] {
+   --color1: #b59f3b;
+   --color2: #3a3a3c;
+}
+
+.key.duodle-split[data-state1="absent"][data-state2="correct"] {
+   --color1: #3a3a3c;
+   --color2: #538d4e;
+}
+
+.key.duodle-split[data-state1="absent"][data-state2="present"] {
+   --color1: #3a3a3c;
+   --color2: #b59f3b;
+}
+
+.key.duodle-split[data-state1="absent"][data-state2="absent"] {
+   --color1: #3a3a3c;
+   --color2: #3a3a3c;
 }
 
 .key:hover {
@@ -205,7 +283,6 @@ body {
    opacity: 1;
 }
 
-/* Popup Styles */
 .popup-overlay {
    display: none;
    position: fixed;
@@ -329,13 +406,35 @@ body {
    padding: 2vmin 4vmin;
    font-size: 2.5vmin;
    font-weight: bold;
-   cursor: pointer;
    font-family: "Franklin", Arial, sans-serif;
+   cursor: pointer;
    transition: background-color 0.2s ease;
 }
 
 .share-button:hover {
    background-color: #6aaa64;
+}
+
+@keyframes flip {
+   0% {
+      transform: rotateX(0deg);
+   }
+   50% {
+      transform: rotateX(90deg);
+   }
+   100% {
+      transform: rotateX(0deg);
+   }
+}
+
+@keyframes pulse {
+   0%,
+   100% {
+      opacity: 0.5;
+   }
+   50% {
+      opacity: 1;
+   }
 }
 
 @media (max-width: 768px) {

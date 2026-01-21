@@ -29,6 +29,9 @@ export class TARDLEGame {
       this.revealedGreens = new Set(); // For Hardle
       this.revealedYellows = new Set(); // For Hardle
       this.gambleHiddenIndices = []; // For Gamble mode
+      this.gambleNextHiddenIndex = null; // Track next hidden index for Gamble
+      this.fakeLetter = ""; // For Fakele
+      this.fakePosition = -1; // For Fakele
 
       // Module Initialization
       this.wordManager = new WordManager();
@@ -64,7 +67,7 @@ export class TARDLEGame {
       await this.wordManager.loadWords();
       this.targetWord = this.wordManager.getDailyWord(
          this.gameType,
-         this.wordLength
+         this.wordLength,
       );
 
       if (this.gameType === GameTypes.DUODLE) {
@@ -74,18 +77,36 @@ export class TARDLEGame {
          this.targetWord2 = this.wordManager.answerList[index].toUpperCase();
       }
 
-      console.log("Today's word:", this.targetWord);
-      if (this.targetWord2) console.log("Second word:", this.targetWord2);
-
-      document.getElementById("gameContainer").style.display = "flex";
+      document.getElementById("game-container").style.display = "flex";
       this.uiManager.createBoard();
       this.uiManager.setupEventListeners();
       this.uiManager.updateGameTitle();
 
-      if (this.stateManager.loadGameState()) {
+      if (this.gameType === GameTypes.FAKELE) {
+         // Generate fake letter and position
+         const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+         const hash = this.wordManager.hashDate(new Date());
+         this.fakePosition = hash % this.wordLength;
+         this.fakeLetter = letters[Math.floor((hash * 7) % 26)];
+      }
+
+      // Load saved state first
+      const hasLoadedState = this.stateManager.loadGameState();
+
+      // Only generate first hidden index if no saved state
+      if (this.gameType === GameTypes.GAMBLE && !hasLoadedState) {
+         const hash = this.wordManager.hashDate(new Date());
+         this.gambleNextHiddenIndex = hash % this.wordLength;
+      }
+
+      if (hasLoadedState) {
          this.uiManager.restoreVisualState();
       } else {
          this.addNewGuess();
+         // Apply gamble preview after adding the first guess
+         if (this.gameType === GameTypes.GAMBLE) {
+            this.uiManager.applyGamblePreview();
+         }
       }
    }
 
@@ -134,7 +155,9 @@ export class TARDLEGame {
       }
 
       // Evaluate guess based on game type
-      if (this.gameType === GameTypes.GAMBLE) {
+      if (this.gameType === GameTypes.FAKELE) {
+         this.evaluateFakeleGuess();
+      } else if (this.gameType === GameTypes.GAMBLE) {
          this.evaluateGambleGuess();
       } else if (this.gameType === GameTypes.MANGLE) {
          this.evaluateMangleGuess();
@@ -193,9 +216,17 @@ export class TARDLEGame {
    }
 
    evaluateGambleGuess() {
-      // Pick random hidden indices for this guess
-      const hiddenIndex = Math.floor(Math.random() * this.wordLength);
+      // Use pre-calculated hidden index
+      const hiddenIndex = this.gambleNextHiddenIndex;
       this.gambleHiddenIndices.push(hiddenIndex);
+
+      // Calculate next hidden index for preview using seeded random
+      if (this.guesses.length < this.maxGuesses - 1) {
+         // Use combination of date hash and guess count for deterministic randomness
+         const hash = this.wordManager.hashDate(new Date());
+         const seed = (hash * (this.guesses.length + 1) * 7919) % 982451653;
+         this.gambleNextHiddenIndex = seed % this.wordLength;
+      }
 
       const word = this.currentGuess.getWord();
       const targetLetters = this.targetWord.split("");
@@ -229,6 +260,54 @@ export class TARDLEGame {
       this.currentGuess.isSubmitted = true;
    }
 
+   evaluateFakeleGuess() {
+      const word = this.currentGuess.getWord();
+      const targetLetters = this.targetWord.split("");
+      const guessLetters = word.split("");
+
+      // Create a modified target that includes the fake letter at fakePosition
+      const modifiedTarget = [...targetLetters];
+      const realLetterAtFakePos = targetLetters[this.fakePosition];
+
+      // First pass: mark correct letters
+      for (let i = 0; i < this.wordLength; i++) {
+         if (i === this.fakePosition) {
+            // At fake position: both the real letter AND fake letter are "correct"
+            if (
+               guessLetters[i] === realLetterAtFakePos ||
+               guessLetters[i] === this.fakeLetter
+            ) {
+               this.currentGuess.letters[i].setState("correct");
+               targetLetters[i] = null;
+               guessLetters[i] = null;
+            }
+         } else if (guessLetters[i] === targetLetters[i]) {
+            this.currentGuess.letters[i].setState("correct");
+            targetLetters[i] = null;
+            guessLetters[i] = null;
+         }
+      }
+
+      // Add fake letter to available pool for present checks
+      const availableLetters = targetLetters.filter((l) => l !== null);
+      availableLetters.push(this.fakeLetter);
+
+      // Second pass: mark present letters
+      for (let i = 0; i < this.wordLength; i++) {
+         if (!guessLetters[i]) continue; // Already marked correct
+
+         const letterIndex = availableLetters.indexOf(guessLetters[i]);
+         if (letterIndex !== -1) {
+            this.currentGuess.letters[i].setState("present");
+            availableLetters[letterIndex] = null; // Remove to prevent double-counting
+         } else {
+            this.currentGuess.letters[i].setState("absent");
+         }
+      }
+
+      this.currentGuess.isSubmitted = true;
+   }
+
    evaluateMangleGuess() {
       this.currentGuess.evaluateAgainst(this.targetWord);
 
@@ -243,22 +322,34 @@ export class TARDLEGame {
    evaluateDuodleGuess() {
       const word = this.currentGuess.getWord();
 
-      // Evaluate against both words
-      const states1 = this.evaluateWordAgainst(word, this.targetWord);
-      const states2 = this.evaluateWordAgainst(word, this.targetWord2);
+      // Evaluate against first word (unless already found)
+      let states1;
+      if (this.duodleWord1Found) {
+         // Don't show anything if word already found
+         states1 = Array(this.wordLength).fill("empty");
+      } else {
+         states1 = this.evaluateWordAgainst(word, this.targetWord);
+      }
 
-      // Combine states - take the "better" state for each position
+      // Evaluate against second word (unless already found)
+      let states2;
+      if (this.duodleWord2Found) {
+         // Don't show anything if word already found
+         states2 = Array(this.wordLength).fill("empty");
+      } else {
+         states2 = this.evaluateWordAgainst(word, this.targetWord2);
+      }
+
+      // Store both states in the letters
       for (let i = 0; i < this.wordLength; i++) {
          const state1 = states1[i];
          const state2 = states2[i];
 
-         if (state1 === "correct" || state2 === "correct") {
-            this.currentGuess.letters[i].setState("correct");
-         } else if (state1 === "present" || state2 === "present") {
-            this.currentGuess.letters[i].setState("present");
-         } else {
-            this.currentGuess.letters[i].setState("absent");
-         }
+         // First board uses normal state
+         this.currentGuess.letters[i].setState(state1);
+
+         // Second board state stored separately
+         this.currentGuess.letters[i].state2 = state2;
       }
 
       this.currentGuess.isSubmitted = true;
@@ -302,15 +393,23 @@ export class TARDLEGame {
       if (this.gameType === GameTypes.YELLODLE) {
          // Win condition: all letters are yellow (present)
          won = this.currentGuess.letters.every(
-            (letter) => letter.state === "present"
+            (letter) => letter.state === "present",
          );
       } else if (this.gameType === GameTypes.DUODLE) {
          // Win condition: guessed both words
          const matchesWord1 = word === this.targetWord;
          const matchesWord2 = word === this.targetWord2;
 
-         if (!this.duodleWord1Found) this.duodleWord1Found = matchesWord1;
-         if (!this.duodleWord2Found) this.duodleWord2Found = matchesWord2;
+         if (!this.duodleWord1Found && matchesWord1) {
+            this.duodleWord1Found = true;
+            // Gray out first board
+            this.uiManager.grayOutBoard(1);
+         }
+         if (!this.duodleWord2Found && matchesWord2) {
+            this.duodleWord2Found = true;
+            // Gray out second board
+            this.uiManager.grayOutBoard(2);
+         }
 
          won = this.duodleWord1Found && this.duodleWord2Found;
       } else {
@@ -331,6 +430,10 @@ export class TARDLEGame {
          this.stateManager.saveGameState();
       } else {
          this.addNewGuess();
+         // Apply gamble preview after adding new guess
+         if (this.gameType === GameTypes.GAMBLE) {
+            this.uiManager.applyGamblePreview();
+         }
          this.stateManager.saveGameState();
       }
    }
@@ -350,14 +453,26 @@ export class TARDLEGame {
       this.revealedGreens = new Set();
       this.revealedYellows = new Set();
       this.gambleHiddenIndices = [];
+      this.gambleNextHiddenIndex = null;
       this.duodleWord1Found = false;
       this.duodleWord2Found = false;
+
+      // Regenerate gamble next hidden index
+      if (this.gameType === GameTypes.GAMBLE) {
+         const hash = this.wordManager.hashDate(new Date());
+         this.gambleNextHiddenIndex = hash % this.wordLength;
+      }
 
       this.uiManager.clearBoard();
       this.uiManager.clearKeyboard();
       this.uiManager.hideMessage();
 
       this.addNewGuess();
+
+      if (this.gameType === GameTypes.GAMBLE) {
+         this.uiManager.applyGamblePreview();
+      }
+
       console.log("Game reset complete. New target word:", this.targetWord);
    }
 }
