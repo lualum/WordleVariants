@@ -36,12 +36,12 @@ body {
    min-height: 100vh;
 }
 
-#game-container {
+#game-app-container {
    opacity: 0;
    transition: opacity 0.3s ease-in;
 }
 
-#game-container.loaded {
+#game-app-container.loaded {
    opacity: 1;
 }
 
