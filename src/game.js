@@ -4,7 +4,7 @@ import { StateManager } from "./stateManager.js";
 import { UIManager } from "./uiManager.js";
 import { WordManager } from "./wordManager.js";
 
-export class TARDLEGame {
+export class WORDLEGame {
 	constructor() {
 		// Check for test mode in URL
 		const urlParams = new URLSearchParams(window.location.search);

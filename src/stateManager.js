@@ -22,11 +22,11 @@ export class StateManager {
 			targetWord2: this.game.targetWord2,
 			oddslePrefilledWords: this.game.oddslePrefilledWords || [],
 		};
-		this.setCookie("tardleGame", JSON.stringify(gameData), 1);
+		this.setCookie("wordleGame", JSON.stringify(gameData), 1);
 	}
 
 	loadGameState() {
-		const savedData = this.getCookie("tardleGame");
+		const savedData = this.getCookie("wordleGame");
 		if (!savedData) return false;
 
 		try {
@@ -91,7 +91,7 @@ export class StateManager {
 	}
 
 	clearSavedState() {
-		this.setCookie("tardleGame", "", -1);
+		this.setCookie("wordleGame", "", -1);
 	}
 
 	getCookie(name) {
