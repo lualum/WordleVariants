@@ -1,0 +1,2 @@
+- all gray letters must be used at MORE than once
+- yellodle requires user to have all yellow
