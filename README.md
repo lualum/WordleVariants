@@ -2,6 +2,8 @@
 
 Each day is a new variant of wordle.
 
+Access Here: https://lualum.github.io/WordleVariants/
+
 ## Weekly Game Schedule
 
 The game type is determined by the current day of the week. Here is the rotation schedule:
