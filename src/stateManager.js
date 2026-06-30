@@ -13,8 +13,6 @@ export class StateManager {
 			gameState: this.game.gameState,
 			currentPosition: this.game.currentPosition,
 			hasCurrentGuess: this.game.currentGuess !== null,
-			revealedGreens: Array.from(this.game.revealedGreens),
-			revealedYellows: Array.from(this.game.revealedYellows),
 			gambleHiddenIndices: this.game.gambleHiddenIndices,
 			gambleNextHiddenIndex: this.game.gambleNextHiddenIndex,
 			duodleWord1Found: this.game.duodleWord1Found || false,
@@ -46,12 +44,6 @@ export class StateManager {
 			this.game.gameState = gameData.gameState || "playing";
 			this.game.currentPosition = gameData.currentPosition || 0;
 
-			if (gameData.revealedGreens) {
-				this.game.revealedGreens = new Set(gameData.revealedGreens);
-			}
-			if (gameData.revealedYellows) {
-				this.game.revealedYellows = new Set(gameData.revealedYellows);
-			}
 			if (gameData.gambleHiddenIndices) {
 				this.game.gambleHiddenIndices = gameData.gambleHiddenIndices;
 			}

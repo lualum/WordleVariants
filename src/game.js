@@ -26,8 +26,6 @@ export class WORDLEGame {
 		this.wordLength = this.gameConfig.wordLength;
 
 		// Game-specific properties
-		this.revealedGreens = new Set(); // For Hardle
-		this.revealedYellows = new Set(); // For Hardle
 		this.gambleHiddenIndices = []; // For Gamble mode
 		this.gambleNextHiddenIndex = null; // Track next hidden index for Gamble
 		this.fakeLetter = ""; // For Fakele
@@ -228,12 +226,23 @@ export class WORDLEGame {
 			return;
 		}
 
-		// Hardle validation
+		// Chaindle validation
 		if (
-			this.gameType === GameTypes.HARDLE &&
-			!this.validateHardleGuess(word)
+			this.gameType === GameTypes.CHAINDLE &&
+			!this.validateChaindleGuess(word)
 		) {
-			this.uiManager.showMessage("Must use revealed hints");
+			this.uiManager.showMessage(
+				`Must start with ${this.getRequiredChaindleLetter()}`,
+			);
+			return;
+		}
+
+		// Repeadle validation
+		if (
+			this.gameType === GameTypes.REPEADLE &&
+			!this.validateRepeadleGuess(word)
+		) {
+			this.uiManager.showMessage("Can't reuse previous letters");
 			return;
 		}
 
@@ -248,11 +257,6 @@ export class WORDLEGame {
 			this.evaluateDuodleGuess();
 		} else {
 			this.currentGuess.evaluateAgainst(this.targetWord);
-		}
-
-		// Update revealed hints for Hardle
-		if (this.gameType === GameTypes.HARDLE) {
-			this.updateRevealedHints();
 		}
 
 		this.guesses.push(this.currentGuess);
@@ -281,33 +285,29 @@ export class WORDLEGame {
 		}, animationDuration);
 	}
 
-	validateHardleGuess(word) {
-		// Check if all revealed greens are used in correct positions
-		for (const posChar of this.revealedGreens) {
-			const [pos, char] = posChar.split(":");
-			if (word[parseInt(pos)] !== char) {
-				return false;
-			}
-		}
-
-		// Check if all revealed yellows are used somewhere in the word
-		for (const char of this.revealedYellows) {
-			if (!word.includes(char)) {
-				return false;
-			}
-		}
-
-		return true;
+	getRequiredChaindleLetter() {
+		const previousGuess = this.guesses[this.guesses.length - 1];
+		const previousWord = previousGuess?.getWord();
+		return previousWord ? previousWord[previousWord.length - 1] : null;
 	}
 
-	updateRevealedHints() {
-		this.currentGuess.letters.forEach((letter, index) => {
-			if (letter.state === "correct") {
-				this.revealedGreens.add(`${index}:${letter.character}`);
-			} else if (letter.state === "present") {
-				this.revealedYellows.add(letter.character);
-			}
-		});
+	validateChaindleGuess(word) {
+		const requiredLetter = this.getRequiredChaindleLetter();
+		return !requiredLetter || word[0] === requiredLetter;
+	}
+
+	getPreviousGuessLetters() {
+		const previousGuess = this.guesses[this.guesses.length - 1];
+		const previousWord = previousGuess?.getWord();
+		return previousWord ? new Set(previousWord.split("")) : null;
+	}
+
+	validateRepeadleGuess(word) {
+		const previousLetters = this.getPreviousGuessLetters();
+		return (
+			!previousLetters ||
+			!word.split("").some((letter) => previousLetters.has(letter))
+		);
 	}
 
 	evaluateGambleGuess() {

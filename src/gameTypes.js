@@ -1,11 +1,11 @@
 export const GameTypes = {
 	FAKELE: "fakele",
-	HARDLE: "hardle",
+	CHAINDLE: "chaindle",
 	YELLODLE: "yellodle",
 	GAMBLE: "gamble",
 	ODDSLE: "oddsle",
 	DUODLE: "duodle",
-	FOURLE: "fourle",
+	REPEADLE: "repeadle",
 };
 
 export const GameTypeConfig = {
@@ -16,10 +16,10 @@ export const GameTypeConfig = {
 		wordLength: 5,
 		dayOfWeek: 1, // Monday
 	},
-	[GameTypes.HARDLE]: {
-		name: "Hardle",
-		description: "Revealed hints must be used!",
-		maxGuesses: 6,
+	[GameTypes.CHAINDLE]: {
+		name: "Chaindle",
+		description: "Start each guess with the previous guess's last letter!",
+		maxGuesses: 7,
 		wordLength: 5,
 		dayOfWeek: 2, // Tuesday
 	},
@@ -51,11 +51,11 @@ export const GameTypeConfig = {
 		wordLength: 5,
 		dayOfWeek: 6, // Friday
 	},
-	[GameTypes.FOURLE]: {
-		name: "Fourle",
-		description: "Four letter words!",
+	[GameTypes.REPEADLE]: {
+		name: "Repeadle",
+		description: "Do not use letters from your previous guess!",
 		maxGuesses: 6,
-		wordLength: 4,
+		wordLength: 5,
 		dayOfWeek: 0, // Sunday
 	},
 };

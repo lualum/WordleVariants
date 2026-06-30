@@ -1,22 +1,7 @@
-@font-face {
-	font-family: "Franklin";
-	src: url("fonts/franklin-normal-700.ttf") format("truetype");
-	font-weight: 700;
-	font-style: normal;
-}
-
-@font-face {
-	font-family: "Karnak";
-	src: url("fonts/NYTKarnakCondensed.ttf") format("truetype");
-	font-weight: 700;
-	font-style: normal;
-}
-
-@font-face {
-	font-family: "Memphis";
-	src: url("fonts/memphis5.ttf") format("truetype");
-	font-weight: 400;
-	font-style: normal;
+:root {
+	--font-ui: "Helvetica Neue", Arial, sans-serif;
+	--font-title: Georgia, "Times New Roman", serif;
+	--font-copy: "Avenir Next", "Trebuchet MS", Arial, sans-serif;
 }
 
 * {
@@ -26,7 +11,7 @@
 }
 
 body {
-	font-family: "Franklin", Arial, sans-serif;
+	font-family: var(--font-ui);
 	background-color: #121213;
 	color: #ffffff;
 	display: flex;
@@ -34,9 +19,16 @@ body {
 	align-items: center;
 	justify-content: center;
 	min-height: 100vh;
+	padding: 3vmin;
 }
 
 #game-app-container {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: calc(100vh - 6vmin);
 	opacity: 0;
 	transition: opacity 0.3s ease-in;
 }
@@ -46,15 +38,15 @@ body {
 }
 
 .title {
-	font-family: "Karnak", Arial, sans-serif;
+	font-family: var(--font-title);
 	font-weight: 700;
 	font-size: 8vmin;
-	letter-spacing: 0.2vmin;
+	letter-spacing: 0;
 	text-align: center;
 }
 
 .game-description {
-	font-family: "Memphis", Arial, sans-serif;
+	font-family: var(--font-copy);
 	font-weight: 400;
 	font-size: 2.5vmin;
 	color: #b0b0b0;
@@ -63,9 +55,20 @@ body {
 }
 
 .main-content {
-	width: fit-content;
+	display: flex;
+	width: 100%;
 	align-items: center;
 	justify-content: center;
+	margin: 0 auto;
+}
+
+.game-section {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: min-content;
+	max-width: 100%;
 }
 
 #board {
@@ -175,7 +178,7 @@ body {
 	color: #ffffff;
 	font-size: 2.4vmin;
 	font-weight: bold;
-	font-family: "Franklin", Arial, sans-serif;
+	font-family: var(--font-ui);
 	cursor: pointer;
 	display: flex;
 	align-items: center;
@@ -406,7 +409,7 @@ body {
 	padding: 2vmin 4vmin;
 	font-size: 2.5vmin;
 	font-weight: bold;
-	font-family: "Franklin", Arial, sans-serif;
+	font-family: var(--font-ui);
 	cursor: pointer;
 	transition: background-color 0.2s ease;
 }
